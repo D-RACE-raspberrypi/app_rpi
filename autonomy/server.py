@@ -180,7 +180,7 @@ class Fusion:
                         reason='Relâcher les gâchettes / attendre la manette')
                 elif self.pilot.mode=='manual':
                     packet.update(plan_until=self.pilot.stamp+.35,mode='manual',source='gamepad',
-                        manual=dict(effort=self.pilot.effort,steering=self.pilot.steer),reason='Commande manuelle · niveau 2')
+                        manual=dict(effort=self.pilot.effort,steering=self.pilot.steer,gear=self.pilot.gear),reason=f'Commande manuelle · niveau {self.pilot.gear}')
             return packet
 
     def configure(self,values):

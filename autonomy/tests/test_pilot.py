@@ -15,6 +15,11 @@ class SessionTests(unittest.TestCase):
   p['seq']=4;s.update(p,10.7);self.assertEqual(s.mode,'manual');self.assertEqual(s.effort,0)
  def test_initial_held_touch_does_not_toggle(self):
   s=PilotSession();p=frame(0);p['touch']=True;s.update(p,10);self.assertEqual(s.mode,'manual')
+ def test_gear_selection(self):
+  s=PilotSession()
+  for i,gear in enumerate((1,2,3,4)):
+   s.update(dict(frame(i),gear=gear),10+i*.1);self.assertEqual(s.status(10+i*.1)['gear'],gear)
+  with self.assertRaises(ValueError):s.update(dict(frame(5),gear=5),11)
  def test_expiry_invalid_and_duplicate(self):
   s=PilotSession();s.update(frame(0),10);self.assertFalse(s.status(10.4)['connected'])
   for p in (frame(0),dict(frame(1),steer=float('nan')),dict(frame(2),connected=False)):

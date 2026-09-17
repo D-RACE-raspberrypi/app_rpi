@@ -64,7 +64,7 @@ Le dépôt contient un serveur C UDP et la configuration du point d’accès ; a
 client graphique. Nous réutilisons les conventions JGX/GD/GG et les formules
 servo/moteur, avec un seul pilote matériel pour les deux modes.
 - Servo : int(102 + 43 × direction), puis 1 000 000 + angle × 1 000 000 / 180 ns.
-- Propulsion : niveau 2 maximum, 1 500 µs ± 75 µs selon les gâchettes.
+- Propulsion manuelle : niveaux 1 à 4, 1 500 µs ± (37,5 µs × niveau) selon les gâchettes. Automatique : niveau 2 maximum.
 - L’installation Wi-Fi/Docker du groupe n’est pas lancée et le réseau est conservé.
 - Ne pas lancer serveur_pi en parallèle avec rc-motor-drive.
 
@@ -88,3 +88,5 @@ restent à valider.
 Sauvegarde avant installation : `../backups/rc-before-pilot-app.tar.gz`.
 
 La validation physique Bluetooth a été faite sur le Mac du montage. Le workflow CI vérifie le serveur local sur Windows, Linux et macOS ; il ne valide pas les pilotes Bluetooth ou les moteurs.
+
+Niveaux manuels : croix = 1, carré = 2, triangle = 3, rond = 4, ou sélecteur dans l’interface. Niveau 2 choisi au démarrage. Le facteur 0,3 du dépôt est conservé ; niveau 4 donne au maximum 1 650 µs en avant et 1 350 µs en arrière. Le programme indépendant de test reste au niveau 2.

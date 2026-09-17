@@ -48,3 +48,5 @@ programme, arrêter rc-motor-drive auparavant et éviter toute commande concurre
 Les cas vérifiés incluent perte de consigne, simulation, sens non confirmé,
 arrêt dans chaque phase de recul, péremption de session et absence d’armement
 automatique. Les performances en conduite au sol restent à valider sur le montage.
+
+Niveaux manuels : croix = 1, carré = 2, triangle = 3, rond = 4, ou sélecteur dans l’interface. Niveau 2 choisi au démarrage. Le facteur 0,3 du dépôt est conservé ; niveau 4 donne au maximum 1 650 µs en avant et 1 350 µs en arrière. Le programme indépendant de test reste au niveau 2.

@@ -44,6 +44,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(command(p,10)[0],(.5,-.4))
         self.assertIsNone(command(p,11)[0])
         p['manual']['effort']=2;self.assertIsNone(command(p,10)[0])
+    def test_four_manual_gears_match_group_formula(self):
+        for gear in (1,2,3,4):
+            for throttle in (-1.,-.4,0.,.4,1.):
+                p=packet();p.update(mode='manual',source='gamepad',manual=dict(effort=throttle,steering=0.,gear=gear))
+                effort,_=command(p,10)[0]
+                esc=Esc();esc.last=-1
+                self.assertEqual(esc.step(effort,10),1500000+round(throttle*37500*gear))
+        for gear in (0,5,True,2.5):
+            p['manual']['gear']=gear;self.assertIsNone(command(p,10)[0])
+        auto=packet();auto['manual']={'gear':4}
+        self.assertEqual(Esc().step(command(auto,10)[0][0],10),1575000)
+
     def test_frozen_packet_expires(self):
         p=packet();self.assertIsNotNone(command(p,10)[0]);self.assertIsNone(command(p,10.21)[0])
 

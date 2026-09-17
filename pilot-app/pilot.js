@@ -1,23 +1,25 @@
 'use strict';
 const $=s=>document.querySelector(s),fmt=(v,n=2)=>Number.isFinite(v)?v.toFixed(n).replace('.',','):'—';
-let state=null,displayed=null,mode='manual',active=false,owner='',seq=0,busy=false,touchWas=false,padKey=null,latestPad=null,initialized=false,epoch=0;
+let state=null,displayed=null,mode='manual',active=false,owner='',seq=0,busy=false,touchWas=false,padKey=null,latestPad=null,initialized=false,epoch=0,gear=2;
 const touchField=$('#touch-index');touchField.value=localStorage.getItem('rc-touch-index')||17;
 touchField.onchange=()=>{if(active){touchField.value=localStorage.getItem('rc-touch-index')||17;return}localStorage.setItem('rc-touch-index',touchField.value)};
 async function api(path,data){const r=await fetch('/api/'+path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(1800)});const d=await r.json();if(!r.ok)throw Error(d.error||'Connexion interrompue');return d}
 function note(message){$('#notice').textContent=message}
-function showMode(value){mode=value;$('#manual').classList.toggle('selected',value==='manual');$('#auto').classList.toggle('selected',value==='autonomous');$('#mode-label').textContent=value==='manual'?'Manuel':'Automatique'}
+function showMode(value){mode=value;$('#gear').disabled=value!=='manual';$('#manual').classList.toggle('selected',value==='manual');$('#auto').classList.toggle('selected',value==='autonomous');$('#mode-label').textContent=value==='manual'?'Manuel':'Automatique'}
 async function stop(){epoch++;active=false;owner='';try{await api('pilot',{action:'stop'})}catch(e){note('Liaison perdue : arrêt automatique à expiration des commandes.')}$('#arm').textContent='Activer les commandes'}
 $('#stop').onclick=stop;
+$('#gear').onchange=e=>{gear=Number(e.target.value)};
 async function changeMode(value){if(active){try{await api('pilot',{action:'mode',mode:value,owner});note('Changement de mode : relâche les gâchettes.')}catch(e){await stop();note(e.message)}}else showMode(value)}
 $('#manual').onclick=()=>changeMode('manual');$('#auto').onclick=()=>changeMode('autonomous');
 $('#arm').onclick=async()=>{if(active)return;const pad=latestPad;if(!pad||pad.accel>.05||pad.brake>.05||pad.touch){note('Connecte la manette et relâche les gâchettes et le pavé tactile.');return}const version=++epoch;owner=crypto.randomUUID();seq=0;$('#arm').disabled=true;try{await api('pilot',{action:'start',mode,owner});if(version!==epoch){await api('pilot',{action:'stop'});return}active=true;padKey=pad.key;note('Armement au neutre pendant 3 secondes.');}catch(e){active=false;note(e.message)}};
 $('#distance-form').onsubmit=async e=>{e.preventDefault();try{await api('config',{target_m:Number($('#target').value)});note('Distance enregistrée.')}catch(e){note(e.message)}};
 $('#release').onclick=async()=>{if(state?.vision)try{await api('select',{id:null,generation:state.vision.generation})}catch(e){note(e.message)}};
-function readPad(){const pads=navigator.getGamepads?.();const p=pads&&Array.from(pads).find(p=>p?.connected&&p.mapping==='standard');if(!p)return null;const touch=Number(touchField.value);return {key:p.index+':'+p.id,id:p.id,steer:Math.max(-1,Math.min(1,p.axes[0]||0)),accel:p.buttons[7]?.value||0,brake:p.buttons[6]?.value||0,touch:!!p.buttons[touch]?.pressed,connected:true,pressed:p.buttons.flatMap((b,i)=>b.pressed?[i]:[]),hasTouch:!!p.buttons[touch]}}
+function readPad(){const pads=navigator.getGamepads?.();const p=pads&&Array.from(pads).find(p=>p?.connected&&p.mapping==='standard');if(!p)return null;const touch=Number(touchField.value);return {key:p.index+':'+p.id,id:p.id,steer:Math.max(-1,Math.min(1,p.axes[0]||0)),accel:p.buttons[7]?.value||0,brake:p.buttons[6]?.value||0,touch:!!p.buttons[touch]?.pressed,connected:true,pressed:p.buttons.flatMap((b,i)=>b.pressed?[i]:[]),hasTouch:!!p.buttons[touch],gearButton:p.buttons[0]?.pressed?1:p.buttons[2]?.pressed?2:p.buttons[3]?.pressed?3:p.buttons[1]?.pressed?4:null}}
 async function inputLoop(){latestPad=readPad();const p=latestPad;$('#gamepad').textContent=p?p.id:'Appuie sur un bouton de la manette';$('#buttons').textContent='Boutons pressés : '+(p?.pressed.join(', ')||'aucun');$('#padwarning').textContent=p&&!p.hasTouch?'Ce navigateur n’expose pas le bouton configuré du pavé tactile. Le changement de mode reste disponible à l’écran.':'';
  if(active&&(!p||p.key!==padKey||document.hidden)){await stop();note('Commandes arrêtées : manette déconnectée ou onglet masqué.');}
  if(p){if(!active&&p.touch&&!touchWas)showMode(mode==='manual'?'autonomous':'manual');touchWas=p.touch}else touchWas=false;
- if(active&&p&&!busy){busy=true;try{await api('pilot',{action:'input',owner,seq:seq++,...p})}catch(e){await stop();note(e.message)}finally{busy=false}}
+ if(p?.gearButton&&mode==='manual'){gear=p.gearButton;$('#gear').value=String(gear)}
+ if(active&&p&&!busy){busy=true;try{await api('pilot',{action:'input',owner,seq:seq++,...p,gear})}catch(e){await stop();note(e.message)}finally{busy=false}}
  setTimeout(inputLoop,80);
 }
 function leave(){epoch++;active=false;navigator.sendBeacon('/api/pilot',new Blob([JSON.stringify({action:'stop'})],{type:'application/json'}))}

@@ -41,7 +41,7 @@ En cas de changement d’adresse, renseigner la nouvelle IP au lancement.
 - **ARRÊTER** désarme ; perte de connexion, manette ou onglet visible : expiration des commandes.
 - Le calcul de trajet peut rester visible en manuel ; il ne commande pas les moteurs dans ce mode.
 
-La commande utilise le **niveau 2 maximum** et la formule servo du dépôt du groupe
+La commande utilise le **niveaux 1 à 4 en manuel, niveau 2 maximum en automatique** et la formule servo du dépôt du groupe
 (59–145°, centre 102°). Ces angles concernent le servo, pas une mesure de l’angle des roues.
 
 ## Installation Raspberry Pi
@@ -62,3 +62,5 @@ Les réglages actuels sont inclus : conserver sa propre calibration lors d’une
 - PWM matériel recherché par adresse `1f00098000.pwm`, pas par numéro pwmchip supposé.
 
 
+
+Niveaux manuels : croix = 1, carré = 2, triangle = 3, rond = 4, ou sélecteur dans l’interface. Niveau 2 choisi au démarrage. Le facteur 0,3 du dépôt est conservé ; niveau 4 donne au maximum 1 650 µs en avant et 1 350 µs en arrière. Le programme indépendant de test reste au niveau 2.

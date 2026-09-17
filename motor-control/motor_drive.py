@@ -26,7 +26,10 @@ def command(packet,now):
     if packet.get('mode')=='manual' and packet.get('source')=='gamepad':
         manual=packet.get('manual',{});effort=manual.get('effort');steer=manual.get('steering')
         if not finite(effort) or not finite(steer) or abs(effort)>1 or abs(steer)>1:return None,'Commande manuelle invalide'
-        return (effort,steer*packet['steering_sign']),packet.get('reason','Commande manuelle')
+        gear=manual.get('gear',2)
+        if type(gear) is not int or gear not in (1,2,3,4):return None,'Niveau manuel invalide'
+        # ESC effort unit is gear 2; original SPEED_LIMIT=.3 remains unchanged.
+        return (effort*gear/2,steer*packet['steering_sign']),packet.get('reason','Commande manuelle')
     if not packet.get('odometry_valid'):return None,'Localisation lidar incertaine'
     if packet.get('mode')!='autonomous':return None,'Mode manuel'
     intent=packet.get('intent',{});motion=intent.get('motion');speed=intent.get('speed_m_s');steer=intent.get('steering_normalized')
