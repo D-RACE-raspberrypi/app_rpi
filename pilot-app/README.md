@@ -56,17 +56,6 @@ moteurs désarmés. Certains navigateurs n’exposent pas ce bouton : utiliser a
 les boutons de mode de l’application. Le changement est déclenché au début de
 l’appui, jamais à chaque image tant que le bouton reste enfoncé.
 
-## Réutilisation du dépôt du groupe
-
-Source : https://github.com/D-RACE-raspberrypi/demo-repository.git,
-version consultée origin/main 2d3b202 (16 septembre 2026).
-Le dépôt contient un serveur C UDP et la configuration du point d’accès ; aucun
-client graphique. Nous réutilisons les conventions JGX/GD/GG et les formules
-servo/moteur, avec un seul pilote matériel pour les deux modes.
-- Servo : int(102 + 43 × direction), puis 1 000 000 + angle × 1 000 000 / 180 ns.
-- Propulsion manuelle : niveaux 1 à 4, 1 500 µs ± (37,5 µs × niveau) selon les gâchettes. Automatique : niveau 2 maximum.
-- L’installation Wi-Fi/Docker du groupe n’est pas lancée et le réseau est conservé.
-- Ne pas lancer serveur_pi en parallèle avec rc-motor-drive.
 
 ## Architecture et validation
 
