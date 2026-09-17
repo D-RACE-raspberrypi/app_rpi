@@ -19,14 +19,14 @@ async function inputLoop(){latestPad=readPad();const p=latestPad;$('#gamepad').t
  if(active&&(!p||p.key!==padKey||document.hidden)){await stop();note('Commandes arrêtées : manette déconnectée ou onglet masqué.');}
  if(p){if(!active&&p.touch&&!touchWas)showMode(mode==='manual'?'autonomous':'manual');touchWas=p.touch}else touchWas=false;
  if(p?.gearButton&&mode==='manual'){gear=p.gearButton;$('#gear').value=String(gear)}
- if(active&&p&&!busy){busy=true;try{await api('pilot',{action:'input',owner,seq:seq++,...p,gear})}catch(e){await stop();note(e.message)}finally{busy=false}}
+ if(active&&p&&!busy){busy=true;try{await api('pilot',{action:'input',owner,seq:seq++,...p,gear})}catch(e){await stop();note('Commande manette interrompue : '+e.message)}finally{busy=false}}
  setTimeout(inputLoop,80);
 }
 function leave(){epoch++;active=false;navigator.sendBeacon('/api/pilot',new Blob([JSON.stringify({action:'stop'})],{type:'application/json'}))}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)leave()});window.addEventListener('pagehide',()=>{if(active)leave()});
 async function render(s,viewEpoch){state=s;const d=s.drive,p=s.plan,m=d.status||{};$('#connection').textContent=s.demo?'SIMULATION':'Pi connecté · '+(s.vision?.fresh?'caméra en direct':'caméra en attente');
- if(active&&viewEpoch===epoch&&(!d.active||d.owner!==owner)){active=false;epoch++;note('Commandes désarmées.');}
- if(active&&d.pilot)showMode(d.pilot.mode);
+ // Telemetry may predate a successful input: only the command channel can disarm this session.
+ if(active&&d.owner===owner&&d.pilot)showMode(d.pilot.mode);
  $('#arm').disabled=active||!latestPad||!m.boot_id||!!s.demo||d.active;$('#arm').textContent=active?'Commandes activées':'Activer les commandes';touchField.disabled=active;
  if(active)note((d.pilot?.ready?'':'Relâche les gâchettes. ')+(m.reason||''));
  $('#effort').textContent=m.pulse_us==null?'Désarmé':m.pulse_us>1501?'Avancer':m.pulse_us<1499?'Frein / recul':'Au neutre';$('#steering').textContent=Math.abs(m.steering||0)<.02?'Centre':(m.steering<0?'Gauche ':'Droite ')+Math.round(Math.abs(m.steering)*100)+' %';$('#distance').textContent=fmt(s.vision?.target?.distance_m)+' m';
@@ -40,6 +40,6 @@ async function renderVision(v){
  if(v?.image){const im=new Image();im.src='data:image/jpeg;base64,'+v.image;await im.decode();c.width=im.width;c.height=im.height;ctx.drawImage(im,0,0);const now=performance.now();cameraCount++;if(now-cameraWindow>=1000){$('#video-fps').textContent=fmt(cameraCount*1000/(now-cameraWindow),1)+' images/s';cameraCount=0;cameraWindow=now;}cameraStamp=v.captured_at;if(v.fresh){displayed=v;ctx.lineWidth=2;ctx.font='15px system-ui';for(const person of v.people||[]){const [x,y,x2,y2]=person.box;ctx.strokeStyle=ctx.fillStyle=person.id===v.selected_id?'#c6ef9f':'white';ctx.strokeRect(x*c.width,y*c.height,(x2-x)*c.width,(y2-y)*c.height);ctx.fillText('#'+person.id,x*c.width+3,Math.max(17,y*c.height-5))}}}else{ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#bac9b6';ctx.font='18px system-ui';ctx.fillText('En attente de la caméra…',30,50)}
 }
 $('#person').onclick=async e=>{if(!displayed)return;const r=e.target.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;const hits=displayed.people.filter(p=>x>=p.box[0]&&x<=p.box[2]&&y>=p.box[1]&&y<=p.box[3]);if(hits.length!==1){note('Choisis une personne dont le cadre ne se superpose pas.');return}try{await api('select',{id:hits[0].id,generation:displayed.generation})}catch(e){note(e.message)}};
-async function poll(){const viewEpoch=epoch;try{await render(await api('state'),viewEpoch)}catch(e){$('#connection').textContent='Pi indisponible';displayed=null;if(active)await stop();note(e.message)}setTimeout(poll,200)}
+async function poll(){const viewEpoch=epoch;try{await render(await api('state'),viewEpoch)}catch(e){$('#connection').textContent='Pi indisponible';displayed=null;if(!active)note('Affichage indisponible : '+e.message)}setTimeout(poll,200)}
 async function cameraLoop(){try{await renderVision(await api('vision'))}catch(e){displayed=null;$('#video-fps').textContent='Flux interrompu'}setTimeout(cameraLoop,40)}
 api('connection').then(c=>{$('#advanced').href=c.url}).catch(()=>{});inputLoop();poll();cameraLoop();
