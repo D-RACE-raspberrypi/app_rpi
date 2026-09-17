@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "confidence": 0.45,
+  "target_m": 1.5,
+  "camera_yaw_deg": 0.0
+}

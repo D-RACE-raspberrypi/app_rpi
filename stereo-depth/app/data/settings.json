@@ -1,0 +1,28 @@
+{
+  "depth": {
+    "preset": "fast",
+    "near": 0.25,
+    "far": 4,
+    "uniqueness": 10,
+    "block_size": 5,
+    "tx": 0,
+    "ty": 0,
+    "tz": 0,
+    "rx": 0,
+    "ry": 0,
+    "rz": 0,
+    "trial_y": -30.5,
+    "trial_roll": 0,
+    "trial_x": 41,
+    "trial_zoom": 0.5,
+    "trial_pitch": 0,
+    "trial_yaw": -1.1,
+    "texture_sensitivity": 100
+  },
+  "camera": {
+    "focus": 1.0,
+    "swap": true
+  },
+  "trial": true,
+  "rotate_display": true
+}

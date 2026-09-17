@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RPLIDAR · Mesures</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0e1520;color:#e8eef7;font:16px system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:24px}h1{font-size:25px;margin:0 0 8px}.muted{color:#b1bfd1}header p{margin:0 0 20px}.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:16px 0}label{display:flex;gap:7px;flex-direction:column;font-size:14px}input,select,button{font:inherit;color:inherit;background:#1b283b;border:1px solid #61728b;border-radius:6px;padding:8px;min-height:40px}input[type=number]{width:95px}input[type=checkbox]{min-height:20px;width:20px}label.check{flex-direction:row;align-items:center}.map{position:relative}canvas{display:block;width:100%;aspect-ratio:1;max-height:760px;border:1px solid #36465c;touch-action:pan-y}.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;margin:12px 0}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#6ce5cf}.target{color:#ffce73}.unknown{color:#e4a5ae}#detail{min-height:25px}#status{font-variant-numeric:tabular-nums;margin:12px 0}#tour{width:min(420px,75vw)}footer{font-size:14px;line-height:1.6}@media(max-width:500px){main{padding:12px}h1{font-size:22px}.controls{gap:10px}canvas{max-height:none}}
+</style>
+<main><header><h1>Environnement · RPLIDAR</h1><p class="muted">Vue de dessus — 0° en haut, angles positifs à droite. Référence provisoire.</p></header>
+<div class="controls">
+<label>Rayon affiché<select id="range"><option value="1">1 m</option><option value="2">2 m</option><option value="4" selected>4 m</option><option value="6">6 m</option></select></label>
+<label>Malus obstacles <output id="penaltyValue">×1.00</output><input id="penalty" type="range" min="0" max="3" step="0.05" value="1" aria-label="Intensité du malus obstacles"></label>
+<label>Cible (°)<input id="target" type="number" value="30" min="-180" max="180" step="5"></label>
+<label>Angle avant lidar (°)<input id="front" type="number" value="0" step="5"></label>
+<label>Sens des angles<select id="sign"><option value="1">Normal</option><option value="-1">Inversé</option></select></label>
+<label class="check"><input id="unknown" type="checkbox" checked>Secteurs sans retour</label>
+<label class="check"><input id="follow" type="checkbox" checked>Suivre le dernier tour</label>
+</div>
+<div id="status" role="status">Chargement des mesures…</div>
+<div class="map"><canvas id="map" role="img" aria-label="Nuage de points lidar, cercles de distance en mètres, angle cible et secteurs sans mesure">Carte des mesures lidar. Les statistiques sont affichées au-dessus.</canvas></div>
+<div class="legend"><span><i class="dot"></i> Distance mesurée</span><span class="target">┄ Direction cible</span><span style="color:#61ef89">➜ Meilleur score</span><span class="unknown">Secteur rose : aucun retour valide</span><span>○ Gabarit + marge (0,28 m)</span></div>
+<p id="best" role="status"></p><p class="muted">Score de préférence : 0 rouge → 50 jaune → 100 vert. La couleur ne valide pas le passage. Survole ou touche l’arc pour lire bonus et malus.</p>
+<details><summary>Scores de toutes les directions</summary><div style="overflow-x:auto"><table style="width:100%;text-align:right"><thead><tr><th>Angle</th><th>Score /100</th><th>Bonus cible</th><th>Malus obstacles</th><th>Malus inconnu</th><th>Couloir</th></tr></thead><tbody id="scoreTable"></tbody></table></div></details>
+<div id="detail" class="muted">Survole ou touche un point pour lire sa distance et son angle.</div>
+<div class="controls"><label>Tour <span id="tourLabel">—</span><input id="tour" type="range" min="0" max="0" value="0"></label></div>
+<footer class="muted">Affichage des tours enregistrés, actualisé pendant une acquisition. Une absence de retour ne signifie pas que la zone est libre. Le cercle central suppose le lidar au centre d’une voiture de 30 × 20 cm, avec 10 cm de marge. La ligne cible est un repère, pas une trajectoire validée.</footer>
+</main>
+<script src="/scores.js"></script>
+<script>
+const $=id=>document.getElementById(id),canvas=$('map'),ctx=canvas.getContext('2d');
+let scans=[],selected=0,screenPoints=[],connectionError='',geometry=null,scores=[],scoreKey='',initialized=false;
+const wrap=a=>(a%360+540)%360-180;
+function draw(){
+ const box=canvas.getBoundingClientRect(),w=box.width,h=box.height,dpr=devicePixelRatio||1;
+ canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+ const cx=w/2,cy=h/2,r=Math.min(w,h)/2-48,max=+$('range').value,scale=r/max;
+ geometry={cx,cy,scale,r};ctx.clearRect(0,0,w,h);screenPoints=[];
+ const scan=scans[selected];
+ const front=+$('front').value||0,sign=+$('sign').value;
+ const valid=(scan?.points||[]).filter(p=>p.distance_mm>0&&p.quality>0).map(p=>({...p,a:wrap(sign*(p.angle_deg-front)),d:p.distance_mm/1000}));
+ const key=JSON.stringify([scan?.timestamp,front,sign,$('target').value,$('penalty').value]);
+ if(key!==scoreKey){scores=scoreDirections(scan?.points||[],+$('target').value||0,front,sign,+$('penalty').value);scoreKey=key; $('scoreTable').innerHTML=scores.map(c=>`<tr><td>${c.angle}°</td><td style="color:hsl(${c.score*1.2},75%,60%)">${c.score.toFixed(1)}</td><td>${c.targetBonus.toFixed(1)}</td><td>−${c.obstaclePenalty.toFixed(1)}</td><td>−${c.unknownPenalty.toFixed(1)}</td><td>${c.allowed?'Observé':'Non validé'}</td></tr>`).join('');}
+ const known=new Set(valid.map(p=>Math.floor((p.a+360)%360/2)));
+ if($('unknown').checked&&scan){ctx.fillStyle='rgba(227,115,139,.12)';for(let i=0;i<180;i++){if(known.has(i))continue;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,(i*2-90)*Math.PI/180,(i*2+2-90)*Math.PI/180);ctx.closePath();ctx.fill();}}
+ for(const c of scores){const start=(c.angle-2.3-90)*Math.PI/180,end=(c.angle+2.3-90)*Math.PI/180;ctx.strokeStyle=`hsl(${c.score*1.2},75%,48%)`;ctx.lineWidth=12;ctx.beginPath();ctx.arc(cx,cy,r+13,start,end);ctx.stroke();}
+ ctx.strokeStyle='#35465d';ctx.lineWidth=1;ctx.font='12px system-ui';ctx.textAlign='left';
+ for(let i=1;i<=4;i++){const rr=r*i/4;ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#c6d0df';ctx.fillText((max*i/4)+' m',cx+6,cy-rr+15);}
+ ctx.beginPath();ctx.moveTo(cx-r,cy);ctx.lineTo(cx+r,cy);ctx.moveTo(cx,cy-r);ctx.lineTo(cx,cy+r);ctx.stroke();
+ ctx.fillStyle='#e8eef7';ctx.textAlign='center';ctx.fillText('0° · avant',cx,cy-r-14);ctx.fillText('180°',cx,cy+r+22);ctx.textAlign='left';ctx.fillText('−90°',cx-r+4,cy-8);ctx.textAlign='right';ctx.fillText('+90°',cx+r-4,cy-8);
+ const angle=(+$('target').value||0)*Math.PI/180;
+ ctx.strokeStyle='#ffce73';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.sin(angle),cy-r*Math.cos(angle));ctx.stroke();ctx.setLineDash([]);
+ const topDirection=[...scores].sort((a,b)=>b.score-a.score)[0];
+ if(scan&&topDirection){const a=topDirection.angle*Math.PI/180,ux=Math.sin(a),uy=-Math.cos(a),len=r*.85,ex=cx+ux*len,ey=cy+uy*len;
+ ctx.strokeStyle='#61ef89';ctx.fillStyle='#61ef89';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ex,ey);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(ex-ux*13-uy*6,ey-uy*13+ux*6);ctx.lineTo(ex-ux*13+uy*6,ey-uy*13-ux*6);ctx.closePath();ctx.fill();
+ }
+ ctx.strokeStyle='#cad5e5';ctx.fillStyle='rgba(202,213,229,.08)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,.2803*scale,0,2*Math.PI);ctx.fill();ctx.stroke();ctx.strokeRect(cx-.1*scale,cy-.15*scale,.2*scale,.3*scale);
+ ctx.fillStyle='#6ce5cf';for(const p of valid){if(p.d>max)continue;const rad=p.a*Math.PI/180,x=cx+p.d*Math.sin(rad)*scale,y=cy-p.d*Math.cos(rad)*scale;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();screenPoints.push({x,y,...p});}
+ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fill();
+ $('tourLabel').textContent=scans.length?`${selected+1} / ${scans.length}`:'—';
+ const favorite=[...scores].sort((a,b)=>b.score-a.score)[0];
+ const winner=scores.filter(c=>c.allowed).sort((a,b)=>b.score-a.score)[0];
+ const historical=scan&&Date.now()/1000-scan.timestamp>1;
+ $('best').textContent=!scan?'Aucun scan':`Préférence ${historical?'historique ':''}: ${favorite.angle}° · ${favorite.score.toFixed(1)}/100. `+(historical?'STOP : scan périmé.':winner?`Couloir le mieux classé : ${winner.angle}° (virage non validé).`:'STOP : aucun couloir suffisamment observé.');
+ if(scan){const age=Math.max(0,Date.now()/1000-scan.timestamp);$('status').textContent=`${scan.duration_s?(1/scan.duration_s).toFixed(1)+' tours/s · '+Math.round(scan.points.length/scan.duration_s)+' points/s · ':''}${valid.length} / ${scan.points.length} mesures valides · ${known.size}/180 secteurs · ${new Date(scan.timestamp*1000).toLocaleTimeString()} · ${age<2?'Tour récent':`Enregistrement datant de ${Math.round(age)} s`}${connectionError?' · '+connectionError:''}`;}
+ else $('status').textContent=connectionError||'Aucun tour complet disponible. Lance une acquisition sur le Pi.';
+}
+async function refresh(){try{
+ if(!initialized){const res=await fetch('/api/scans',{cache:'no-store'});if(!res.ok)throw Error(res.status);scans=(await res.json()).scans;initialized=true;}
+ const res=await fetch('/api/latest',{cache:'no-store'});if(!res.ok)throw Error(res.status);const latest=await res.json();
+ if(latest&&(!scans.length||latest.timestamp>scans[scans.length-1].timestamp)){scans.push(latest);if(scans.length>120){scans.shift();selected=Math.max(0,selected-1);}}
+ connectionError='';selected=$('follow').checked?Math.max(0,scans.length-1):Math.min(selected,Math.max(0,scans.length-1));$('tour').max=Math.max(0,scans.length-1);$('tour').value=selected;draw();
+ }catch(e){connectionError='Connexion interrompue : affichage conservé';draw();}finally{setTimeout(refresh,100);}}
+for(const id of ['penalty','range','target','front','sign','unknown','follow'])$(id).addEventListener('input',()=>{$('penaltyValue').value='×'+(+$('penalty').value).toFixed(2);if($('follow').checked){selected=Math.max(0,scans.length-1);$('tour').value=selected;}draw();});
+$('tour').addEventListener('input',()=>{$('follow').checked=false;selected=+$('tour').value;draw();});
+function inspectPoint(e){const b=canvas.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;if(geometry&&Math.abs(Math.hypot(x-geometry.cx,y-geometry.cy)-(geometry.r+13))<20){const a=wrap(Math.atan2(x-geometry.cx,geometry.cy-y)*180/Math.PI);const c=scores.find(c=>Math.abs(wrap(c.angle-a))<3);if(c){$('detail').textContent=`Direction ${c.angle}° · Score ${c.score.toFixed(1)}/100 = bonus cible ${c.targetBonus.toFixed(1)} − obstacles ${c.obstaclePenalty.toFixed(1)} − inconnu ${c.unknownPenalty.toFixed(1)} · Couloir ${c.allowed?'observé':'non validé'} (${c.reason})`;return;}}let best=null,dist=22;for(const p of screenPoints){const d=Math.hypot(p.x-x,p.y-y);if(d<dist){dist=d;best=p;}}$('detail').textContent=best?`Angle ${best.a.toFixed(1)}° · Distance ${best.d.toFixed(3)} m · Qualité ${best.quality}`:'Survole ou touche un point pour lire sa distance et son angle.';}
+canvas.addEventListener('pointermove',inspectPoint);canvas.addEventListener('pointerdown',inspectPoint);
+new ResizeObserver(draw).observe(canvas);refresh();
+</script></html>

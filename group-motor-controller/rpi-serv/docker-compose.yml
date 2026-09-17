@@ -1,0 +1,25 @@
+services:
+  rpi-serv:
+    build: .
+    container_name: drace_serv
+    network_mode: host      # acces direct aux interfaces wifi de l'hote, pas de NAT
+    privileged: true        # requis pour autoriser l'ecriture sysfs (/sys/class/pwm) et l'acces aux GPIO
+    cap_add:
+      - NET_ADMIN           # requis pour "ip addr" et hostapd
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
+    volumes:
+      - /sys:/sys
+      - /usr/bin/pinctrl:/usr/bin/pinctrl:ro
+      - /usr/lib/aarch64-linux-gnu/libgpiod.so.0:/usr/lib/aarch64-linux-gnu/libgpiod.so.2:ro
+      - /usr/lib/aarch64-linux-gnu/libgpiolib.so.0:/usr/lib/aarch64-linux-gnu/libgpiolib.so.0:ro
+    restart: unless-stopped
+    environment:
+      DEBUG: ${DEBUG:-0} # active le mode debug si DEBUG_MOD est defini et different de 0
+      AP_IFACE: ${AP_IFACE:-}   # antenne USB, surchargable : AP_IFACE=... docker compose up -d
+      AP_SSID: drace_wifi
+      AP_PASS: ${AP_PASS:?Definir un mot de passe Wi-Fi de 8 caracteres minimum}
+      AP_IP: 192.168.4.1
+      AP_DHCP_START: 192.168.4.10
+      AP_DHCP_END: 192.168.4.100
+      AP_CHANNEL: "1"

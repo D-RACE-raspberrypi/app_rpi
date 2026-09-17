@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),{scoreDirections}=require('./scores.js');
+const scene=(distance=4000,spread=0)=>Array.from({length:360},(_,a)=>({angle_deg:a,distance_mm:Math.abs((a+540)%360-180)<=spread?distance:4000,quality:15}));
+const at=(points,target,angle)=>scoreDirections(points,target).find(c=>c.angle===angle);
+const empty=scoreDirections([],30);
+assert(empty.every(c=>Number.isFinite(c.score)&&!c.allowed));
+assert(new Set(empty.map(c=>c.score.toFixed(1))).size>10);
+assert(at(scene(),30,30).score>at(scene(),30,0).score);
+assert(at(scene(500,10),0,0).score<at(scene(1500,10),0,0).score);
+assert(at(scene(500,20),0,0).score<at(scene(500,2),0,0).score);
+assert(at(scene(150),30,30).score>at(scene(150),30,-90).score);
+console.log('Gradient: scores continus, bonus cible, proximité, densité et exclusions indépendantes OK');

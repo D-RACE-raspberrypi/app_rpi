@@ -1,0 +1,16 @@
+[Unit]
+Description=RC motor bridge with independent command watchdog
+After=rc-navigation.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/toto/voiture-rc/motor-control
+ExecStart=/usr/bin/python3 motor_drive.py
+ExecStopPost=/usr/bin/python3 /home/toto/voiture-rc/motor-control/motor_drive.py --stop
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=2
+
+[Install]
+WantedBy=multi-user.target

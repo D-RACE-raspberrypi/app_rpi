@@ -1,0 +1,14 @@
+[Unit]
+Description=RC RPLIDAR acquisition (lidar motor only)
+After=network.target
+
+[Service]
+User=toto
+WorkingDirectory=/home/toto/voiture-rc/rplidar/app
+ExecStart=/usr/bin/python3 scan_test.py --seconds 0 --duty 0.70
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=6
+
+[Install]
+WantedBy=multi-user.target

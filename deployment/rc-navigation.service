@@ -1,0 +1,13 @@
+[Unit]
+Description=RC vision, lidar navigation and manual/automatic arbitration
+After=network.target stereo-depth.service rc-lidar-viewer.service
+
+[Service]
+User=toto
+WorkingDirectory=/home/toto/voiture-rc/autonomy
+ExecStart=/usr/bin/python3 server.py --host 0.0.0.0 --port 8081 --vision-url http://127.0.0.1:8080 --lidar-url http://127.0.0.1:8765
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

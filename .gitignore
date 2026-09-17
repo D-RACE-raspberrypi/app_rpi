@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+*.log
+*.jsonl
+backups/
+captures/
+latest.json
+*.tar.gz
+*.zip

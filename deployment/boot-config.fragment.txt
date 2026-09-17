@@ -1,0 +1,13 @@
+# Réglages actifs vérifiés le 17 septembre 2026 sur le Raspberry Pi 5.
+# À fusionner dans /boot/firmware/config.txt, dans une section applicable au Pi 5.
+# Ne pas remplacer le fichier complet ; ne pas dupliquer des overlays existants.
+
+dtparam=i2c_arm=on
+dtparam=spi=off
+dtoverlay=uart3-pi5
+
+# Indispensable pour exposer PWM0 et router les deux sorties ESC + servo :
+dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4
+
+# Autre overlay déjà présent sur le montage d'origine : dtoverlay=nospi10
+# Il n'est pas ajouté ici automatiquement ; conserver les autres réglages du Pi.
