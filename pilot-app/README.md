@@ -1,13 +1,31 @@
 # D-RACE — application de pilotage sur le PC
 
-Double-cliquer sur **D-RACE.command** sur ce Mac. Saisir l’adresse du Pi
-(actuellement 10.215.13.38) ou Entrée pour garder cette valeur. Garder le terminal
-ouvert. L’application s’ouvre sur http://localhost:8090/ dans le navigateur.
-Python 3 suffit, sans paquet supplémentaire. En terminal :
+L’interface PC fonctionne sous **Windows, Linux et macOS**, avec Python 3.10 ou
+plus récent et un navigateur compatible Gamepad API. Aucun paquet Python externe.
+Les pilotes caméra, lidar et PWM restent exécutés sur le Raspberry Pi Linux.
+
+| Système du PC | Lancement dans le dossier `pilot-app` |
+|---|---|
+| Windows | Double-cliquer sur **D-RACE.bat** |
+| Linux | `sh D-RACE.sh` dans un terminal |
+| macOS | Double-cliquer sur **D-RACE.command** |
+
+Saisir l’adresse actuelle du Pi ou Entrée pour garder la valeur proposée.
+Garder le terminal ouvert. L’application s’ouvre sur http://localhost:8090/.
+Le PC et le Pi doivent être sur un réseau permettant leur communication.
+
+En terminal, sans question interactive :
 
 ```sh
+# Windows (PowerShell ou cmd)
+py -3 launch.py --pi 10.215.13.38
+
+# Linux / macOS
 python3 launch.py --pi 10.215.13.38
 ```
+
+Sous Windows, le lanceur essaie `py -3`, puis `python`. Sous Linux/macOS, il
+utilise `python3`. Si le navigateur ne s’ouvre pas, ouvrir localhost:8090 manuellement.
 
 La manette PS4 se connecte au **PC par Bluetooth**. Appuyer sur un bouton dans
 l’onglet pour la faire apparaître. Si le navigateur intégré ne l’expose pas,
@@ -68,3 +86,5 @@ Caméra et carte vérifiées dans le navigateur. L’utilisateur a confirmé que
 tactile bascule les modes. Les mouvements de direction et l’autonomie au sol
 restent à valider.
 Sauvegarde avant installation : `../backups/rc-before-pilot-app.tar.gz`.
+
+La validation physique Bluetooth a été faite sur le Mac du montage. Le workflow CI vérifie le serveur local sur Windows, Linux et macOS ; il ne valide pas les pilotes Bluetooth ou les moteurs.

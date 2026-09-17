@@ -26,7 +26,10 @@ Python 3 installé, depuis la racine :
 python3 pilot-app/launch.py --pi 10.215.13.38
 ```
 
-Sur Mac, double-cliquer sur `pilot-app/D-RACE.command`.
+L’interface PC est prévue pour **Windows, Linux et macOS** (Python 3.10+).
+Sous Windows, double-cliquer sur `pilot-app/D-RACE.bat` ou utiliser `py -3`
+à la place de `python3`. Sous Linux : `sh pilot-app/D-RACE.sh`.
+Sur Mac : double-cliquer sur `pilot-app/D-RACE.command`.
 Ouvrir **http://localhost:8090/**, connecter la manette et appuyer sur un bouton.
 Le serveur local relaie les données du Pi et permet au navigateur de lire la manette.
 En cas de changement d’adresse, renseigner la nouvelle IP au lancement.

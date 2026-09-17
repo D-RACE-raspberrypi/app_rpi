@@ -38,7 +38,8 @@ def handler(upstream):
   def log_message(self,*a):pass
  return Handler
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('--pi',default='10.215.13.38');p.add_argument('--port',type=int,default=8090);p.add_argument('--no-browser',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('--pi',default='10.215.13.38');p.add_argument('--port',type=int,default=8090);p.add_argument('--no-browser',action='store_true');p.add_argument('--ask-ip',action='store_true',help='Demander l’adresse du Pi au lancement');a=p.parse_args()
+ if a.ask_ip:a.pi=input(f'Adresse du Pi [{a.pi}] : ').strip() or a.pi
  if not a.pi or any(c not in '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-' for c in a.pi):p.error('Adresse du Pi invalide')
  url=f'http://localhost:{a.port}/'
  try:server=ThreadingHTTPServer(('127.0.0.1',a.port),handler('http://'+a.pi+':8081'))
