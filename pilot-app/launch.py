@@ -21,7 +21,7 @@ def handler(upstream):
     if self.command=='GET' and self.path=='/api/connection':return self.reply(200,json.dumps({'url':upstream}).encode())
     if self.command=='GET' and self.path in ('/','/pilot.js','/pilot.css','/map.js'):
      path=ROOT/('index.html' if self.path=='/' else self.path[1:]);return self.reply(200,path.read_bytes(),{'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css'}[path.suffix])
-    allowed=('/api/state',) if self.command=='GET' else ('/api/pilot','/api/config','/api/select','/api/mode')
+    allowed=('/api/state','/api/vision') if self.command=='GET' else ('/api/pilot','/api/config','/api/select','/api/mode')
     if self.path not in allowed:return self.reply(404,b'{}')
     data=None
     if self.command=='POST':

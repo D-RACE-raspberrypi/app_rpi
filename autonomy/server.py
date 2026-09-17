@@ -305,6 +305,7 @@ def make_handler(fusion):
             route=urlparse(self.path).path
             try:
                 if route=='/api/drive-intent':return self.send_json(fusion.drive_snapshot())
+                if route=='/api/vision':return self.send_json(fusion.vision if fusion.demo else json_request(fusion.vision_url+'/api/following'))
                 if route=='/api/state':return self.send_json(fusion.snapshot())
                 if route=='/api/intent':return self.send_json(fusion.snapshot()['plan'])
                 if route in ('/stream/left','/stream/right','/stream/depth'):
