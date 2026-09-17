@@ -58,24 +58,4 @@ Les réglages actuels sont inclus : conserver sa propre calibration lors d’une
 - ESC : **GPIO12, broche 32**. Servo : **GPIO13, broche 33**.
 - PWM matériel recherché par adresse `1f00098000.pwm`, pas par numéro pwmchip supposé.
 
-## État vérifié / limites
 
-La caméra, le lidar et l’interface ont été vérifiés en direct ; l’utilisateur a confirmé
-la reconnaissance Bluetooth de la manette et la bascule via pavé tactile.
-Les tests logiciels de navigation/API et de commande moteurs ont passé sur le Pi.
-Le programme de test indépendant peut bloquer le pilote s’il reste ouvert : quitter
-avec `q` avant d’utiliser l’application. Le pilote affiche désormais explicitement ce conflit.
-
-La direction physique et la conduite autonome au sol restent à valider. Les distances
-stéréo en mode essai sont approximatives ; les vitesses proposées ne sont pas une mesure
-réelle de vitesse. Commencer les essais moteurs roues levées.
-
-## Origine
-
-Sources du groupe : https://github.com/D-RACE-raspberrypi/demo-repository
-(version consultée : `2d3b202`). Les modèles tiers restent soumis à leurs licences
-respectives ; voir `stereo-depth/app/models/`. Aucune licence supplémentaire n’est
-attribuée ici aux contributions des membres du groupe.
-
-Les anciennes sauvegardes, images de test, journaux et caches ne sont pas versionnés.
-Ce dépôt contient l’application et ses réglages, pas une image complète du système Pi.
